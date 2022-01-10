@@ -178,44 +178,44 @@ contract FlightSuretyData {
 
     struct Insurance {
         string flightDetails;
-        uint256 insuranceAmount;
+        uint256 insuranceinsuraceAmount;
         uint256 payout;
         InsuranceStatus state;
     }
 
-    mapping(address => mapping(string => Insurance)) private Insurances;
+    mapping(address => mapping(string => Insurance)) private insurances;
     mapping(address => uint256) private travellerBalance;
 
-    function getInsurance(address passenger, string flight) external view requireCallerAuthorized returns (uint256 amount, uint256 payoutAmount, InsuranceState state)
+    function insuranceDetails(address traveller, string flight) external view requireCallerAuthorized requireIsOperational returns (uint256 insuranceAmount, uint256 payout, InsuranceStatus state)
     {
-        amount = passengerInsurances[passenger][flight].amount;
-        payoutAmount = passengerInsurances[passenger][flight].payoutAmount;
-        state = passengerInsurances[passenger][flight].state;
+        insuranceAmount = insurances[traveller][flight].insuraceAmount;
+        payout = insurances[traveller][flight].payout;
+        state = insurances[traveller][flight].state;
     }
 
-    function createInsurance(address passenger, string flight, uint256 amount, uint256 payoutAmount) external requireCallerAuthorized
+    function insuranceFactory(address traveller, string flight, uint256 insuraceAmount, uint256 payout) external requireCallerAuthorized requireIsOperational
     {
-        require(passengerInsurances[passenger][flight].amount != amount, "Insurance already exists"); 
-        passengerInsurances[passenger][flight] = Insurance(flight, amount, payoutAmount, InsuranceState.Bought);
+        require(insurances[traveller][flight].insuraceAmount != insuraceAmount, "Insurance is already purchased"); 
+        insurances[traveller][flight] = Insurance(flight, insuraceAmount, payout, InsuranceState.Purchased);
     }
 
-    function claimInsurance(address passenger, string flight) external requireCallerAuthorized
+    function insuranceWithdraw(address traveller, string flight) external requireCallerAuthorized requireIsOperational
     {
-        require(passengerInsurances[passenger][flight].state == InsuranceState.Bought, "Insurance already claimed");
-        passengerInsurances[passenger][flight].state = InsuranceState.Claimed;
-        passengerBalances[passenger] = passengerBalances[passenger] + passengerInsurances[passenger][flight].payoutAmount;
+        require(insurances[traveller][flight].state == InsuranceState.Purchased, "Insurance already Withdrawn");
+        insurances[traveller][flight].state = InsuranceState.Withdrawn;
+        travellerBalances[traveller] = travellerBalances[traveller] + insurances[traveller][flight].payout;
     }
 
-    function getPassengerBalance(address passenger) external view requireCallerAuthorized returns (uint256)
+    function getTravellerBalance(address traveller) external view requireCallerAuthorized requireIsOperational returns (uint256)
     {
-        return passengerBalances[passenger];
+        return travellerBalances[traveller];
     }
 
-    function payPassenger(address passenger) external requireCallerAuthorized
+    function payTraveller(address traveller) external payable requireCallerAuthorized requireIsOperational
     {
-        require(passengerBalances[passenger] > 0, "Passenger doesn't have enough to withdraw that amount");
-        passengerBalances[passenger] = 0;
-        passenger.transfer(passengerBalances[passenger]);
+        require(travellerBalances[traveller] > 0, "Traveler has no balance");
+        travellerBalances[traveller] = 0;
+        payable(traveller).transfer(travellerBalances[traveller]);
     }
 
     /**
