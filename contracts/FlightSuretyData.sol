@@ -1,4 +1,4 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.8.11;
 
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
 
@@ -9,6 +9,7 @@ contract FlightSuretyData {
     /*                                       DATA VARIABLES                                     */
     /********************************************************************************************/
 
+    mapping(address => bool) callerAuthorized;
     address private contractOwner;                                      // Account used to deploy contract
     bool private operational = true;                                    // Blocks all state changes throughout the contract if false
 
@@ -27,6 +28,8 @@ contract FlightSuretyData {
                                 public 
     {
         contractOwner = msg.sender;
+        airlines[contractOwner] = Airline(contractOwner, StatusAirline.Paid, "1st Airline");
+        paidAirlinesTotal++;
     }
 
     /********************************************************************************************/
@@ -53,6 +56,12 @@ contract FlightSuretyData {
     modifier requireContractOwner()
     {
         require(msg.sender == contractOwner, "Caller is not contract owner");
+        _;
+    }
+
+    modifier requireAuthorizedCaller()
+    {
+        require(callerAuthorized[msg.sender] || (contractOwner == msg.sender), "Caller is not authorized");
         _;
     }
 
@@ -98,87 +107,123 @@ contract FlightSuretyData {
     *      Can only be called from FlightSuretyApp contract
     *
     */   
-    function registerAirline
-                            (   
-                            )
-                            external
-                            pure
+
+    function authorizeCaller(address caller, bool authorization) external requireContractOwner requireIsOperational returns (bool)
     {
+        callerAuthorized[caller] = authorization;
+        // return authorizedCallers[caller];
     }
 
-
-   /**
-    * @dev Buy insurance for a flight
-    *
-    */   
-    function buy
-                            (                             
-                            )
-                            external
-                            payable
+    function callerStatus(address caller) public view requireContractOwner requireIsOperational returns (bool)
     {
-
+        return callerAuthorized[caller] = authorization;
     }
 
-    /**
-     *  @dev Credits payouts to insurees
-    */
-    function creditInsurees
-                                (
-                                )
-                                external
-                                pure
-    {
-    }
-    
-
-    /**
-     *  @dev Transfers eligible payout funds to insuree
-     *
-    */
-    function pay
-                            (
-                            )
-                            external
-                            pure
-    {
+    enum StatusAirline {
+        Applied,
+        Registered,
+        Paid
     }
 
-   /**
-    * @dev Initial funding for the insurance. Unless there are too many delayed flights
-    *      resulting in insurance payouts, the contract should be self-sustaining
-    *
-    */   
-    function fund
-                            (   
-                            )
-                            public
-                            payable
-    {
+    struct Airline {
+        address airlineAddress;
+        StatusAirline state;
+        string name;
+
+        mapping(address => bool) airlineApprovals;
+        uint8 countApprovals;
     }
 
-    function getFlightKey
-                        (
-                            address airline,
-                            string memory flight,
-                            uint256 timestamp
-                        )
-                        pure
-                        internal
-                        returns(bytes32) 
+    mapping(address => Airline) internal airlinesList;
+    uint256 internal paidAirlinesTotal= 0;
+
+    function airlineStatus(address airlineAddress) external view requireCallerAuthorized requireIsOperational returns (StatusAirline)
     {
-        return keccak256(abi.encodePacked(airline, flight, timestamp));
+        return airlinesList[airlineAddress].state;
+    }
+
+    function airlineFactory(address airlineAddress, uint8 state, string airlineName) external requireCallerAuthorized requireIsOperational
+    {
+        airlinesList[airlineAddress] = Airline(airlineAddress, StatusAirline(state), airlineName);
+    }
+
+    function airlineStatusUpdate(address airlineAddress, uint8 state) external requireCallerAuthorized requireIsOperational
+    {
+        airlinesList[airlineAddress].state = StatusAirline(state);
+        if (state == 2) 
+        {
+            paidAirlinesTotal++;
+        }
+    }
+
+    function paidAirlinesNumber() external view requireCallerAuthorized requireIsOperational returns (uint256)
+    {
+        return paidAirlinesTotal;
+    }
+
+    function airplaneRegisterApproval(address airlineAddress, address approver) external requireCallerAuthorized requireIsOperational returns (uint8)
+    {
+        require(!airlinesList[airline].approvals[approver], "Caller is already approved");
+
+        airlinesList[airline].airlineApprovals[approver] = true;
+        airlinesList[airline].countApprovals++;
+
+        return airlinesList[airline].countApprovals;
+    }
+
+     enum InsuranceStatus {
+        Purchased,
+        Withdrawn
+    }
+
+    struct Insurance {
+        string flightDetails;
+        uint256 insuranceAmount;
+        uint256 payout;
+        InsuranceStatus state;
+    }
+
+    mapping(address => mapping(string => Insurance)) private Insurances;
+    mapping(address => uint256) private travellerBalance;
+
+    function getInsurance(address passenger, string flight) external view requireCallerAuthorized returns (uint256 amount, uint256 payoutAmount, InsuranceState state)
+    {
+        amount = passengerInsurances[passenger][flight].amount;
+        payoutAmount = passengerInsurances[passenger][flight].payoutAmount;
+        state = passengerInsurances[passenger][flight].state;
+    }
+
+    function createInsurance(address passenger, string flight, uint256 amount, uint256 payoutAmount) external requireCallerAuthorized
+    {
+        require(passengerInsurances[passenger][flight].amount != amount, "Insurance already exists"); 
+        passengerInsurances[passenger][flight] = Insurance(flight, amount, payoutAmount, InsuranceState.Bought);
+    }
+
+    function claimInsurance(address passenger, string flight) external requireCallerAuthorized
+    {
+        require(passengerInsurances[passenger][flight].state == InsuranceState.Bought, "Insurance already claimed");
+        passengerInsurances[passenger][flight].state = InsuranceState.Claimed;
+        passengerBalances[passenger] = passengerBalances[passenger] + passengerInsurances[passenger][flight].payoutAmount;
+    }
+
+    function getPassengerBalance(address passenger) external view requireCallerAuthorized returns (uint256)
+    {
+        return passengerBalances[passenger];
+    }
+
+    function payPassenger(address passenger) external requireCallerAuthorized
+    {
+        require(passengerBalances[passenger] > 0, "Passenger doesn't have enough to withdraw that amount");
+        passengerBalances[passenger] = 0;
+        passenger.transfer(passengerBalances[passenger]);
     }
 
     /**
     * @dev Fallback function for funding smart contract.
     *
     */
-    function() 
-                            external 
-                            payable 
+    fallback() external payable 
     {
-        fund();
     }
 
 

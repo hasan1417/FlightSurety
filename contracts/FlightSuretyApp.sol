@@ -1,10 +1,11 @@
-pragma solidity ^0.4.25;
+pragma solidity ^0.8.11;
 
 // It's important to avoid vulnerabilities due to numeric overflow bugs
 // OpenZeppelin's SafeMath library, when used correctly, protects agains such bugs
 // More info: https://www.nccgroup.trust/us/about-us/newsroom-and-events/blog/2018/november/smart-contract-insecurity-bad-arithmetic/
 
 import "../node_modules/openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "./FlightSuretyData.sol";
 
 /************************************************** */
 /* FlightSurety Smart Contract                      */
@@ -23,8 +24,10 @@ contract FlightSuretyApp {
     uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
     uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
     uint8 private constant STATUS_CODE_LATE_OTHER = 50;
-
+    uint256 private constant AIRLINE_REGISTRATION_FEE = 10 ether;
     address private contractOwner;          // Account used to deploy contract
+    FlightSuretyData flightSuretyData;
+    bool private operational = false;
 
     struct Flight {
         bool isRegistered;
@@ -63,6 +66,19 @@ contract FlightSuretyApp {
         _;
     }
 
+        modifier requireAirlineRegistered()
+    {
+        require(flightSuretyData.isRegisteredAirline(msg.sender), "Airline Registration invalid");
+        _;
+    }
+
+        modifier requireAirlineParticipation()
+    {
+        require(dataContract.isParticipantAirline(msg.sender), "Airline must be participant");
+        _;
+    }
+
+
     /********************************************************************************************/
     /*                                       CONSTRUCTOR                                        */
     /********************************************************************************************/
@@ -73,22 +89,47 @@ contract FlightSuretyApp {
     */
     constructor
                                 (
+                                    address flightSuretyData_address
                                 ) 
                                 public 
     {
         contractOwner = msg.sender;
+        operational = true;
+        flightSuretyData = FlightSuretyData(flightSuretyData_address);
     }
 
     /********************************************************************************************/
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
 
+    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len;
+        while (_i != 0) {
+            k = k-1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
+    }
+    
     function isOperational() 
                             public 
                             pure 
                             returns(bool) 
     {
-        return true;  // Modify to call data contract's status
+        return operational;  // Modify to call data contract's status
     }
 
     /********************************************************************************************/
@@ -100,6 +141,8 @@ contract FlightSuretyApp {
     * @dev Add an airline to the registration queue
     *
     */   
+
+
     function registerAirline
                             (   
                             )
