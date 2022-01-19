@@ -1,16 +1,20 @@
 <!doctype html>
 <html lang="en">
-
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>FlightSurety</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <title>FlightSurety</title>
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet">
+        <link rel="icon" type="image/x-icon" href="favicon.ico">
+    </head>
 </head>
-
 <body>
-
+    <header>
+        <div class="wrapper">
+            <h1>FlightSurety</h1>
+        </div>
+    </header>
     <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
         <a class="navbar-brand" href="#">FlightSurety</a>
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault"
@@ -19,15 +23,39 @@
         </button>
     </nav>
 
-    <main class="container">
+    <main class="wrapper">
+        <section id="display-wrapper">
+        </section>
 
-        <div id="display-wrapper" class="top-20">
-        </div>
-        <div class="row top-20">
-            <label class="form">Flight</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
-        </div>
+        <section>
+            <h2>Purchase Insurance</h2>
+
+            <p>Select your Insurance with maximum price of <strong>1 ether</strong></p>
+
+            <select  id="flights-insurance-payment" aria-label="Flights"></select>
+
+            <input type="number" name="amount" id="insurance-cost" placeholder="1 ether" value="1">
+
+            <button class="btn" data-option="0">Purchase Insurance</button>
+        </section>
+
+        <section>
+            <h2>Insured Flights</h2>
+
+            <ul id="flights-with-insurance">
+            </ul>
+        </section>
+
+
+        <section>
+            <h2>Balance</h2>
+
+            <div id="traveller-balance"></div>
+
+            <br>
+
+            <button class="btn" data-option="3">Claim You Payout</button>
+        </section>
     </main>
-
 </body>
-
 </html>

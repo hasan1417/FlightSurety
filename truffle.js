@@ -1,19 +1,26 @@
 var HDWalletProvider = require("truffle-hdwallet-provider");
-var mnemonic = "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
+const mnemonic = "come online patrol sea tomorrow trip dune resist front evolve share master";
 
 module.exports = {
   networks: {
     development: {
-      provider: function() {
-        return new HDWalletProvider(mnemonic, "http://127.0.0.1:8545/", 0, 50);
-      },
+      host: "localhost",
+      port:9545,
       network_id: '*',
-      gas: 9999999
+    },
+    rinkeby: {
+      provider: () => new HDWalletProvider(mnemonic, `https://rinkeby.infura.io/v3/0f3d9f30356e48c7b048c0b6a6c8ceae`),
+        network_id: 4,       // rinkeby's id
+        gas: 4500000,        // rinkeby has a lower block limit than mainnet
+        gasPrice: 10000000000
     }
   },
   compilers: {
     solc: {
-      version: "^0.8.11"
+      version: "^0.4.25"
     }
+  },
+  mocha: {
+    timeout:20000
   }
 };
